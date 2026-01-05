@@ -1,3 +1,5 @@
+
+
 #ifndef VM_H
 #define VM_H
 #include<iostream>
@@ -16,57 +18,56 @@ class Virtual{
      int rsp=-1;
      int pc=0;
      int size_program=0;
+    
      Virtual(const int code[],int size){
         for(int i=0;i<size;i++){
             program[i]=code[i];
         }
+        for (int i = 0; i < 256; i++) Memory[i] = 0;
+
         size_program=size;
        
      }
    void push(int v){
-    if(sp>=stack_capacity){
-      cout<<"Overflow occcur<<endl";
-      return;
+    if(sp>=stack_capacity-1){
+     throw runtime_error("Overflow");
+      
     }
     stack[++sp]=v;
    }
    int pop(){
     if(sp<0){
-        cout<<"Underflow error";
-        return -1;
+        throw runtime_error("Underflow");
     }
    return stack[sp--];
    }
    int peek(){
     if(sp==-1){
-        cout<<"stack is empty";
-         return -1;
+         throw runtime_error("Stack is empty");
     }
     return stack[sp];
    }
    void return_push(int v){
-    if(rsp>=stack_capacity){
-        cout<<"Overflow occur";
-        return;
+    if(rsp>=stack_capacity-1){
+        throw runtime_error("Overflow");
     }
     return_stack[++rsp]=v;
    }
     int return_pop(){
     if(rsp<0){
-        cout<<"Underflow error";
-        return -1;
+         throw runtime_error("Underflow");
     }
    return return_stack[rsp--];
    }
    int return_peek(){
     if(rsp==-1){
-        cout<<"stack is empty";
-         return -1;
+        throw runtime_error("Stack is empty");
     }
     return return_stack[rsp];
    }
 
    void run(){
+      try{
       while(running&&pc<size_program){
         int opcode=program[pc];
         cout<<"OPcode "<<opcode;
@@ -77,20 +78,20 @@ class Virtual{
              {
                 int v=program[++pc];
                 push(v);
-                cout<<"push "<<v;
+                cout<<"push "<<v<<endl;
                 break;
              }
              case 0x02:
              {
                 int v=pop();
-                 cout<<"pop "<<v;
+                 cout<<"pop "<<v<<endl;
                 break;
              }
              case 0x03:
              {
                 int v=peek();
                 push(v);
-
+                cout<<"peek "<<v<<endl;
                 break;
              }
              case 0x10:
@@ -98,6 +99,7 @@ class Virtual{
                 int a=pop();
                 int b=pop();
                 push(b+a);
+                 cout<<"Add "<<b+a<<endl;
                 break;
              }
              case 0x11:
@@ -105,53 +107,82 @@ class Virtual{
                 int a=pop();
                 int b=pop();
                 push(b-a);
+                 cout<<"sub "<<b-a<<endl;
                 break;
              }
              case 0x12:{
                int a=pop();
                int b=pop();
                push(b*a);
+                cout<<"mul "<<b*a<<endl;
                break;
              }
              case 0x13:
              {
                 int a=pop();
                 int b=pop();
+                if(a==0){
+                  throw runtime_error("Division by zero");
+                }
                 push(b/a);
+                 cout<<"div "<<b/a<<endl;
                 break;
              }
              case 0x14:
              {
-                int a=pop();
                 int b=pop();
+                int a=pop();
                 if(a<b){
+                   cout<<"if "<<1<<endl;
                     push(1);
                 }
                 else{
+                   cout<<"else "<<0<<endl;
                     push(0);
                 }
                 break;
              }
              case 0x20:{
                 int address=program[++pc];
+                if(address<0||address>=256){
+                  throw runtime_error("Invalid address to access "+to_string(address));
+                }
                 pc=address-1;
+
                 break;
              }
              case 0x21:
              {
+                
+               // cout<<"pc "<<pc<<endl;
+                int address=program[++pc];
+                   if(address<0||address>=256){
+                  throw runtime_error("Invalid address to access "+to_string(address));
+                }
                 int t=pop();
                 if(t==0){
-                    int address=program[++pc];
+                    
                     pc=address-1;
                    
                 }
+               // cout<<"t "<<t<<endl;
+                //cout<<"adress "<<address;
+                //cout<<"pc "<<pc<<endl;
                 break;
              }
              case 0x22:
              {
-                int t=pop();
+             
+                 int address=program[++pc];
+                 if(address<0||address>=256){
+                  throw runtime_error("Invalid address to access "+to_string(address));
+                }
+                  cout<<"sp "<<sp;
+                  
+                   cout<<endl;
+                   int t=pop();
                 if(t!=0){
-                    int address=program[++pc];
+                   
                     pc=address-1;
 
                 }
@@ -159,26 +190,39 @@ class Virtual{
              }
              case 0x30:
              {
+                    int t=pop();
                 int adress=program[++pc];
-                int t=pop();
+                if(adress<0||adress>=256){
+                   throw runtime_error("Memeory acess not Performed Properly"+to_string(adress));
+                }
+            
                 Memory[adress]=t;
                 break;
              }
              case 0x31:
              {
                 int address=program[++pc];
+                if(address<0||address>=256){
+                  throw runtime_error("Invalid address to access "+to_string(address));
+                }
                 push(Memory[address]);
                 break;
              }
              case 0x40:
              {
                 int address=program[++pc];
+                if(address<0||address>=256){
+                  throw runtime_error("Invalid address to access "+to_string(address));
+                }
                 return_push(pc+1);
                 pc=address-1;
                 break;
              }
              case 0x41:
-             {
+             {  
+                if(rsp<0){
+                  throw runtime_error("Return stack is Empty");
+                }
                 pc=return_pop()-1;
                 break;
              }
@@ -197,6 +241,11 @@ class Virtual{
          
       }
    }
+    catch(const runtime_error& error){
+      cout<<"Error in Run "<<error.what()<<endl;
+      running=false;
+    }
+   }
    void printStack() {
     cout << "\nSTACK: ";
     for (int i = 0; i <= sp; i++) {
@@ -205,7 +254,14 @@ class Virtual{
     cout << endl;
 }
    void printMemory(){
-     cout<<Memory[0];
+     for (int i = 0; i < 256; i++) 
+     {
+     
+      if(Memory[i] != 0){
+         cout<<"Data at Memory Location "<<Memory[i];
+      }
+     }
+
    }
 };
 #endif

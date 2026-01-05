@@ -1,8 +1,16 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2
 
-main: main.cpp
-	$(CXX) $(CXXFLAGS) main.cpp -o main
+SRC = main.cpp Assembler.cpp
+TARGET = vm_program
+
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET)
+
+run: $(TARGET)
+	./$(TARGET)
 
 clean:
-	rm -f main
+	rm -f $(TARGET)
